@@ -1,133 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quote Widget</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 16px;
-      font-family: Georgia, Cambria, "Times New Roman", Times, serif;
-      background-color: transparent;
-      color: #37352f;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-
-    .quote-card {
-      width: 100%;
-      max-width: 550px;
-      padding: 16px 4px;
-      box-sizing: border-box;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.75rem;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: #9b9a97;
-      margin-bottom: 14px;
-    }
-
-    .dropdown-select {
-      background: transparent;
-      border: none;
-      font-family: inherit;
-      font-size: 0.75rem;
-      color: #9b9a97;
-      cursor: pointer;
-      outline: none;
-    }
-
-    .quote-original {
-      font-size: 1.15rem;
-      line-height: 1.5;
-      margin-bottom: 12px;
-      color: #37352f;
-    }
-
-    .quote-translation-de {
-      font-size: 1rem;
-      line-height: 1.5;
-      margin-bottom: 10px;
-      color: #37352f;
-    }
-
-    .quote-translation-it {
-      font-size: 1rem;
-      line-height: 1.5;
-      font-style: italic;
-      color: #787774;
-    }
-
-    .loading {
-      font-size: 0.9rem;
-      color: #787774;
-    }
-  </style>
-</head>
-<body>
-
-  <div class="quote-card">
-    <div class="card-header">
-      <span>PENSIERO / QUOTE</span>
-      <select class="dropdown-select">
-        <option>Tutti / Alle</option>
-      </select>
-    </div>
-
-    <div id="quoteContainer">
-      <div class="loading" id="loadingText">Lade Zitat...</div>
-      <div class="quote-original" id="quoteOriginal" style="display: none;"></div>
-      <div class="quote-translation-de" id="quoteDe" style="display: none;"></div>
-      <div class="quote-translation-it" id="quoteIt" style="display: none;"></div>
-    </div>
-  </div>
-
-  <script>
-    async function loadQuote() {
-      const proxyUrl = "https://corsproxy.io/?";
-      const targetUrl = "https://zenquotes.io/api/today";
-
-      try {
-        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
-        const data = await response.json();
-
-        if (data && data.length > 0) {
-          document.getElementById("loadingText").style.display = "none";
-          
-          const text = data[0].q;
-          const author = data[0].a;
-
-          const origEl = document.getElementById("quoteOriginal");
-          const deEl = document.getElementById("quoteDe");
-          const itEl = document.getElementById("quoteIt");
-
-          origEl.innerHTML = `"${text}" — <b>${author}</b>`;
-          
-          // Saubere Fallback-Anzeige für DE/IT, die sofort lädt
-          deEl.innerText = `DE: "${text}"`;
-          itEl.innerText = `IT: "${text}"`;
-
-          origEl.style.display = "block";
-          deEl.style.display = "block";
-          itEl.style.display = "block";
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenQuotes API Widget</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: transparent;
         }
-      } catch (error) {
-        document.getElementById("loadingText").innerText = "Fehler beim Laden des Zitats.";
-        console.error("Error:", error);
-      }
-    }
 
-    loadQuote();
-  </script>
+        .font-serif-journal {
+            font-family: 'Newsreader', serif;
+        }
+    </style>
+</head>
+<body class="p-6 flex items-center justify-center min-h-screen text-stone-800">
 
+    <div class="w-full max-w-lg space-y-3">
+        <!-- Header -->
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-semibold uppercase tracking-widest text-stone-400">PENSIERO / QUOTE</span>
+            <select class="text-xs bg-transparent text-stone-500 focus:outline-none cursor-pointer text-right border-none">
+                <option>Tutti / Alle</option>
+            </select>
+        </div>
+
+        <!-- Content Area -->
+        <div class="space-y-2 py-1">
+            <div id="loadingText" class="text-sm font-serif-journal italic text-stone-400">Lade Zitat von ZenQuotes...</div>
+            <p id="quoteEn" class="text-base font-serif-journal font-normal leading-relaxed text-stone-900" style="display: none;"></p>
+            <p id="quoteDe" class="text-sm font-serif-journal text-stone-600 leading-relaxed" style="display: none;"></p>
+            <p id="quoteIt" class="text-sm font-serif-journal italic leading-relaxed text-stone-400" style="display: none;"></p>
+            <p id="quoteAuthor" class="text-xs font-sans tracking-wide text-stone-400 pt-1 text-right" style="display: none;"></p>
+        </div>
+
+        <!-- Action Button -->
+        <div>
+            <button onclick="fetchZenQuote()" class="text-xs uppercase tracking-widest text-stone-400 hover:text-stone-700 transition-colors">
+                + Nuova citazione
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Free public translation helper
+        async function translateText(text, targetLang) {
+            try {
+                const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data && data.responseData && data.responseData.translatedText) {
+                    return data.responseData.translatedText;
+                }
+            } catch (e) {
+                console.warn("Translation fallback active:", e);
+            }
+            return text;
+        }
+
+        async function fetchZenQuote() {
+            const loadingEl = document.getElementById("loadingText");
+            const enEl = document.getElementById("quoteEn");
+            const deEl = document.getElementById("quoteDe");
+            const itEl = document.getElementById("quoteIt");
+            const authorEl = document.getElementById("quoteAuthor");
+
+            loadingEl.style.display = "block";
+            enEl.style.display = "none";
+            deEl.style.display = "none";
+            itEl.style.display = "none";
+            authorEl.style.display = "none";
+            loadingEl.innerText = "Lade Zitat von ZenQuotes...";
+
+            // standard GitHub approach: Use CORS proxy + ZenQuotes API endpoint
+            const zenQuotesUrl = "https://zenquotes.io/api/random";
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(zenQuotesUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+
+                // ZenQuotes returns an array containing [{ q: "quote", a: "author" }]
+                if (data && Array.isArray(data) && data.length > 0) {
+                    const englishQuote = data[0].q;
+                    const authorName = data[0].a;
+
+                    // Translate into German and Italian
+                    const [germanTrans, italianTrans] = await Promise.all([
+                        translateText(englishQuote, "de"),
+                        translateText(englishQuote, "it")
+                    ]);
+
+                    loadingEl.style.display = "none";
+
+                    enEl.innerText = `"${englishQuote}"`;
+                    deEl.innerText = `DE: "${germanTrans}"`;
+                    itEl.innerText = `IT: "${italianTrans}"`;
+                    authorEl.innerText = `— ${authorName}`;
+
+                    enEl.style.display = "block";
+                    deEl.style.display = "block";
+                    itEl.style.display = "block";
+                    authorEl.style.display = "block";
+                } else {
+                    throw new Error("ZenQuotes returned unexpected format");
+                }
+            } catch (error) {
+                loadingEl.innerText = "Fehler beim Laden von ZenQuotes.";
+                console.error("ZenQuotes Fetch Error:", error);
+            }
+        }
+
+        window.onload = fetchZenQuote;
+    </script>
 </body>
 </html>
