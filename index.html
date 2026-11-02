@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quote Widget with Translation</title>
+  <style>
+    /* 1. Page & Typography Setup */
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+      background-color: transparent;
+      color: #37352f;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    /* 2. Clean Container Card */
+    .quote-card {
+      width: 100%;
+      max-width: 550px;
+      padding: 16px 4px;
+      box-sizing: border-box;
+    }
+
+    /* 3. Top Header Row (Label + Dropdown) */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #9b9a97;
+      margin-bottom: 14px;
+    }
+
+    .dropdown-select {
+      background: transparent;
+      border: none;
+      font-family: inherit;
+      font-size: 0.75rem;
+      color: #9b9a97;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* 4. Quote and Translation Lines */
+    .quote-original {
+      font-size: 1.15rem;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      color: #37352f;
+    }
+
+    .quote-translation-de {
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 10px;
+      color: #37352f;
+    }
+
+    .quote-translation-it {
+      font-size: 1rem;
+      line-height: 1.5;
+      font-style: italic;
+      color: #787774;
+    }
+
+    .loading {
+      font-size: 0.9rem;
+      color: #787774;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="quote-card">
+    <!-- Top Header matching your layout style -->
+    <div class="card-header">
+      <span id="headerLabel">PENSIERO / QUOTE</span>
+      <select class="dropdown-select">
+        <option>Tutti / Alle</option>
+      </select>
+    </div>
+
+    <!-- Content Area -->
+    <div id="quoteContainer">
+      <div class="loading" id="loadingText">Fetching & translating quote...</div>
+      <div class="quote-original" id="quoteOriginal" style="display: none;"></div>
+      <div class="quote-translation-de" id="quoteDe" style="display: none;"></div>
+      <div class="quote-translation-it" id="quoteIt" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Helper function to call the free translation API
+    async function translateText(text, targetLang) {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data && data.responseData && data.responseData.translatedText) {
+          return data.responseData.translatedText;
+        }
+      } catch (e) {
+        console.error("Translation error:", e);
+      }
+      return text; // Fallback to original if network fails
+    }
+
+    async function loadQuoteAndTranslate() {
+      const proxyUrl = "https://corsproxy.io/?";
+      const targetUrl = "https://zenquotes.io/api/today";
+
+      try {
+        // 1. Fetch quote from ZenQuotes
+        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+          const englishText = data[0].q;
+          const author = data[0].a;
+
+          // 2. Fetch translations for German (de) and Italian (it) concurrently
+          const [germanTranslation, italianTranslation] = await Promise.all([
+            translateText(englishText, "de"),
+            translateText(englishText, "it")
+          ]);
+
+          // 3. Hide loading indicator and display elements
+          document.getElementById("loadingText").style.display = "none";
+          
+          const origEl = document.getElementById("quoteOriginal");
+          const deEl = document.getElementById("quoteDe");
+          const itEl = document.getElementById("quoteIt");
+
+          origEl.innerText = `"${englishText}" — ${author}`;
+          deEl.innerText = `DE: "${germanTranslation}"`;
+          itEl.innerText = `IT: "${italianTranslation}"`;
+
+          origEl.style.display = "block";
+          deEl.style.display = "block";
+          itEl.style.display = "block";
+        }
+      } catch (error) {
+        document.getElementById("loadingText").innerText = "Could not load quote.";
+        console.error("Error:", error);
+      }
+    }
+
+    loadQuoteAndTranslate();
+  </script>
+
+</body>
+</html>
