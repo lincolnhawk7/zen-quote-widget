@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZenQuotes API Widget</title>
+    <title>Quotable API Widget</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300;1,6..72,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap');
@@ -21,7 +21,7 @@
 <body class="p-6 flex items-center justify-center min-h-screen text-stone-800">
 
     <div class="w-full max-w-lg space-y-3">
-        <!-- Header -->
+        <!-- Top Header -->
         <div class="flex justify-between items-center">
             <span class="text-xs font-semibold uppercase tracking-widest text-stone-400">PENSIERO / QUOTE</span>
             <select class="text-xs bg-transparent text-stone-500 focus:outline-none cursor-pointer text-right border-none">
@@ -31,7 +31,7 @@
 
         <!-- Content Area -->
         <div class="space-y-2 py-1">
-            <div id="loadingText" class="text-sm font-serif-journal italic text-stone-400">Lade Zitat von ZenQuotes...</div>
+            <div id="loadingText" class="text-sm font-serif-journal italic text-stone-400">Lade Zitat von Quotable...</div>
             <p id="quoteEn" class="text-base font-serif-journal font-normal leading-relaxed text-stone-900" style="display: none;"></p>
             <p id="quoteDe" class="text-sm font-serif-journal text-stone-600 leading-relaxed" style="display: none;"></p>
             <p id="quoteIt" class="text-sm font-serif-journal italic leading-relaxed text-stone-400" style="display: none;"></p>
@@ -40,7 +40,7 @@
 
         <!-- Action Button -->
         <div>
-            <button onclick="fetchZenQuote()" class="text-xs uppercase tracking-widest text-stone-400 hover:text-stone-700 transition-colors">
+            <button onclick="fetchQuotable()" class="text-xs uppercase tracking-widest text-stone-400 hover:text-stone-700 transition-colors">
                 + Nuova citazione
             </button>
         </div>
@@ -62,7 +62,7 @@
             return text;
         }
 
-        async function fetchZenQuote() {
+        async function fetchQuotable() {
             const loadingEl = document.getElementById("loadingText");
             const enEl = document.getElementById("quoteEn");
             const deEl = document.getElementById("quoteDe");
@@ -74,30 +74,27 @@
             deEl.style.display = "none";
             itEl.style.display = "none";
             authorEl.style.display = "none";
-            loadingEl.innerText = "Lade Zitat von ZenQuotes...";
-
-            // standard GitHub approach: Use CORS proxy + ZenQuotes API endpoint
-            const zenQuotesUrl = "https://zenquotes.io/api/random";
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(zenQuotesUrl)}`;
+            loadingEl.innerText = "Lade Zitat von Quotable...";
 
             try {
-                const response = await fetch(proxyUrl);
+                // Fetch directly from Quotable API (no proxy required!)
+                const response = await fetch("https://api.quotable.io/random");
                 const data = await response.json();
 
-                // ZenQuotes returns an array containing [{ q: "quote", a: "author" }]
-                if (data && Array.isArray(data) && data.length > 0) {
-                    const englishQuote = data[0].q;
-                    const authorName = data[0].a;
+                // Quotable returns an object with { content: "...", author: "..." }
+                if (data && data.content) {
+                    const quoteText = data.content;
+                    const authorName = data.author;
 
-                    // Translate into German and Italian
+                    // Translate into German and Italian concurrently
                     const [germanTrans, italianTrans] = await Promise.all([
-                        translateText(englishQuote, "de"),
-                        translateText(englishQuote, "it")
+                        translateText(quoteText, "de"),
+                        translateText(quoteText, "it")
                     ]);
 
                     loadingEl.style.display = "none";
 
-                    enEl.innerText = `"${englishQuote}"`;
+                    enEl.innerText = `"${quoteText}"`;
                     deEl.innerText = `DE: "${germanTrans}"`;
                     itEl.innerText = `IT: "${italianTrans}"`;
                     authorEl.innerText = `— ${authorName}`;
@@ -107,15 +104,16 @@
                     itEl.style.display = "block";
                     authorEl.style.display = "block";
                 } else {
-                    throw new Error("ZenQuotes returned unexpected format");
+                    throw new Error("Unexpected API response format");
                 }
             } catch (error) {
-                loadingEl.innerText = "Fehler beim Laden von ZenQuotes.";
-                console.error("ZenQuotes Fetch Error:", error);
+                loadingEl.innerText = "Fehler beim Laden von Quotable.";
+                console.error("Quotable API Error:", error);
             }
         }
 
-        window.onload = fetchZenQuote;
+        // Run when page loads
+        window.onload = fetchQuotable;
     </script>
 </body>
 </html>
